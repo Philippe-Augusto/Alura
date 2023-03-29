@@ -1,0 +1,117 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "mapa.h"
+
+void leitura(MAPA *m) {
+    FILE* f;
+
+    f = fopen("mapa.txt", "r");
+
+    if (f == NULL) {
+        printf("Nao foi possivel carregar o mapa, tente novamente");
+
+        exit(1);
+    }
+
+    int linhas = 0;
+    int colunas = 0;
+
+    while (!feof(f)) {
+        char buffer[99];
+    
+        fgets(buffer, 99, f);
+        linhas++;
+        colunas = strlen(buffer);
+    }
+
+    fseek(f, 0, SEEK_SET);
+
+    m->linhas = linhas;
+    m->colunas = colunas;
+
+    alocamapa(m);
+
+    for (int i = 0; i < m->linhas; i++) {
+        fscanf(f, "%s", m->matriz[i]);
+    }
+
+    fclose(f);
+}
+
+int encontramapa(MAPA *m, POSICAO* p, char c) {
+    for (int i = 0; i < m->linhas; i++) {
+        for (int j = 0;  j < m->colunas; j++) {
+            if (m->matriz[i][j] == c) {
+                p->x = i;
+                p->y = j;
+                return 1; //achou
+            }
+        }
+    }
+
+    return 0; //nao achou
+}
+
+
+int ehvalida(MAPA *m, int x, int y) {
+    if (x >= m->linhas) {return 0;}
+    if (y >= m->colunas) {return 0;}
+
+    return 1;
+}
+
+int ehparede (MAPA *m, int x, int y) {
+    return m->matriz[x][y] == PAREDE_HORIZONTAL || 
+    m->matriz[x][y] == PAREDE_VERTICAL;
+}
+
+int ehpersonagem (MAPA *m, char personagem, int x, int y) {
+    return m->matriz[x][y] == personagem;
+}
+
+int podeandar (MAPA *m, char personagem, int x, int y) {
+    return 
+        ehvalida(m, x, y)   &&
+        !ehparede(m, x, y) &&
+        !ehpersonagem(m, personagem, x, y);
+}
+
+void andanomapa(MAPA *m, int xorigem, int yorigem, int xdestino, int ydestino) {
+    char personagem = m->matriz[xorigem][yorigem];
+    m->matriz[xdestino][ydestino] = personagem;
+    m->matriz[xorigem][yorigem] = VAZIO;
+}
+
+void copiamapa(MAPA *destino, MAPA *origem) {
+
+    memcpy(destino, origem, sizeof(MAPA));
+    destino->linhas = origem->linhas;
+    destino->colunas = origem->colunas;
+
+    alocamapa(destino);
+
+    for (int i = 0; i < destino->linhas; i++) {
+        strcpy(destino->matriz[i], origem->matriz[i]);
+    }
+}
+
+int ehvazia(MAPA *m, int x, int y) {
+    return m->matriz[x][y] == VAZIO;
+}
+
+void liberamapa(MAPA *m) {
+    for(int i = 0; i < m->linhas; i++) {
+        free(m->matriz[i]);
+    }
+    free(m->matriz);
+}
+
+void alocamapa(MAPA *m) {
+    //alocação dinamica de memória
+    //m-> matriz = *m.matriz
+    m->matriz = malloc(sizeof(char*) * m->linhas);
+    for (int i = 0; i < m->linhas; i++) {
+        m->matriz[i] = malloc(sizeof(char) * (m->colunas+1));
+    }
+}
